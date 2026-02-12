@@ -1,9 +1,19 @@
 {
     "name": "napcat-plugin-ai-tag",
-    "version": "1.0.0",
-    "type": "随机图片Tag",
+    "plugin": "随机图片Tag",
+    "version": "1.0.1",
+    "type": "module",
     "main": "index.mjs",
     "description": "随机绘画tag生成，可自定义tag库和跑图前缀",
     "author": "Tavre",
+    "license": "MIT",
+    "napcat": {
+        "tags": [
+            "AI",
+            "图片"
+        ],
+        "minVersion": "4.14.0",
+        "homepage": ""
+    },
     "dependencies": {}
 }

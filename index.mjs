@@ -97,6 +97,18 @@ async function callOB11(ctx, action, params) {
     }
 }
 
+function textSegment(text) {
+    return { type: 'text', data: { text } };
+}
+
+async function sendGroupMsg(ctx, groupId, message) {
+    return callOB11(ctx, 'send_msg', {
+        message_type: 'group',
+        group_id: String(groupId),
+        message: typeof message === 'string' ? [textSegment(message)] : message,
+    });
+}
+
 // ============================================================
 // 随机选取
 // ============================================================
@@ -129,44 +141,45 @@ async function onMessage(ctx, event) {
 
     // 如果是特殊回复，直接发送不加前缀
     if (SPECIAL_REPLIES.includes(randomTag)) {
-        await callOB11(ctx, 'send_group_msg', {
-            group_id: groupId,
-            message: randomTag,
-        });
+        await sendGroupMsg(ctx, groupId, randomTag);
         return;
     }
 
     // 正常 tag：前缀 + 空格 + tag
     const reply = `${currentConfig.prefix} ${randomTag}`;
-    await callOB11(ctx, 'send_group_msg', {
-        group_id: groupId,
-        message: reply,
-    });
+    await sendGroupMsg(ctx, groupId, reply);
 }
 
 // ============================================================
 // 插件生命周期导出
 // ============================================================
-let plugin_config_ui_obj = [];
+export let plugin_config_ui = [];
 
-async function plugin_init_fn(ctx) {
+export async function plugin_init(ctx) {
     ctx.logger.info("[AI-Tag] 插件加载中...");
     loadConfig(ctx);
-    plugin_config_ui_obj = buildConfigUI(ctx);
+    plugin_config_ui = buildConfigUI(ctx);
 }
 
-async function plugin_get_config(ctx) {
+export async function plugin_onmessage(ctx, event) {
+    if (event.post_type !== 'message') return;
+    await onMessage(ctx, event);
+}
+
+export async function plugin_cleanup(ctx) {
+    ctx.logger.info("[AI-Tag] 插件已卸载");
+}
+
+export async function plugin_get_config(ctx) {
     return currentConfig;
 }
 
-function plugin_on_config_change(ctx, _, key, value) {
-    saveConfig(ctx, { [key]: value });
+export async function plugin_set_config(ctx, config) {
+    currentConfig = { ...DEFAULT_CONFIG, ...config };
+    saveConfig(ctx, currentConfig);
+    ctx.logger.info("[AI-Tag] 配置已通过 WebUI 更新");
 }
 
-export {
-    plugin_config_ui_obj as plugin_config_ui,
-    plugin_init_fn as plugin_init,
-    plugin_get_config,
-    plugin_on_config_change,
-    onMessage as plugin_onmessage,
-};
+export async function plugin_on_config_change(ctx, _, key, value) {
+    saveConfig(ctx, { [key]: value });
+}
